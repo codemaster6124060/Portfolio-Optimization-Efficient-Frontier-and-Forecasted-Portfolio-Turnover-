@@ -100,10 +100,7 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
     simulation0 = np.zeros((required_simulation+1,6))
     simulation0[0,0]=GMV_SD
     simulation0[0,1]=GMV_r
-    simulation0[0,2]=GMV_w.T[:,0]
-    simulation0[0,3]=GMV_w.T[:,1]
-    simulation0[0,4]=GMV_w.T[:,2]
-    simulation0[0,5]=GMV_w.T[:,3]
+    simulation0[0,2:5]=GMV_w.T[:,0:3]
     fc_simulation0 = np.zeros((required_simulation+1,5))
     fc_simulation0[0,0] = GMV_w.T[:,0]*Average_AUM
     fc_simulation0[0,1] = GMV_w.T[:,1]*Average_AUM
@@ -125,10 +122,7 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
             GMV_SD0 = np.sqrt(GMV_w0.T*cov_matrix*GMV_w0)
             simulation0[i,0]=GMV_SD0
             simulation0[i,1]=GMV_r0
-            simulation0[i,2]=GMV_w0.T[:,0]
-            simulation0[i,3]=GMV_w0.T[:,1]
-            simulation0[i,4]=GMV_w0.T[:,2]
-            simulation0[i,5]=GMV_w0.T[:,3]
+            simulation0[i,2:5]=GMV_w0.T[:,0:3]
             fc_simulation0[i,0] = (GMV_w0.T[:,0]*Average_AUM)
             fc_simulation0[i,1] = (GMV_w0.T[:,1]*Average_AUM)
             fc_simulation0[i,2] = (GMV_w0.T[:,2]*Average_AUM)
@@ -230,10 +224,7 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
     simulation1 = np.zeros((required_simulation+1,6))
     simulation1[0,0]=MSR_SD
     simulation1[0,1]=MSR_r
-    simulation1[0,2]=MSR_w.T[:,0]
-    simulation1[0,3]=MSR_w.T[:,1]
-    simulation1[0,4]=MSR_w.T[:,2]
-    simulation1[0,5]=MSR_w.T[:,3]
+    simulation1[0,2:5]=MSR_w.T[:,0:3]
     fc_simulation1 = np.zeros((required_simulation+1,5))
     fc_simulation1[0,0] = MSR_w.T[:,0]*Average_AUM
     fc_simulation1[0,1] = MSR_w.T[:,1]*Average_AUM
@@ -255,10 +246,7 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
             MSR_SD1 = np.sqrt(MSR_w1.T*cov_matrix*MSR_w1)
             simulation1[i,0]=MSR_SD1
             simulation1[i,1]=MSR_r1
-            simulation1[i,2]=MSR_w1.T[:,0]
-            simulation1[i,3]=MSR_w1.T[:,1]
-            simulation1[i,4]=MSR_w1.T[:,2]
-            simulation1[i,5]=MSR_w1.T[:,3]
+            simulation1[i,2:5]=MSR_w1.T[:,0:3]
             fc_simulation1[i,0] = (MSR_w1.T[:,0]*Average_AUM)
             fc_simulation1[i,1] = (MSR_w1.T[:,1]*Average_AUM)
             fc_simulation1[i,2] = (MSR_w1.T[:,2]*Average_AUM)
