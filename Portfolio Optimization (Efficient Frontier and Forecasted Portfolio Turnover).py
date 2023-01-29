@@ -287,7 +287,8 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
     print("\n")
     print("Simulation of MSR Sharpe Ratio:")
     print("\n")
-    MSR_Sharpe_ratio = round(pd.DataFrame((simulation1[:1000,1]-rf)/simulation1[:1000,0],columns=['MSR Sharpe Ratio']),3)
+    rf1 = 0
+    MSR_Sharpe_ratio = round(pd.DataFrame((simulation1[:1000,1]-rf1)/simulation1[:1000,0],columns=['MSR Sharpe Ratio']),3)
     print(MSR_Sharpe_ratio)
     print("\n")
     print("Summary Statistics of MSR Sharpe Ratio")
