@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from fredapi import Fred
 
 # Get API key: Fred
-fred = Fred(api_key='Enter Your Fred API Key')
+fred = Fred(api_key='0bbc318d3ba2efaf9d4e56708954067d')
 rf = fred.get_series('DTB6')[-1]/100
 S1 = input("Ticker for stock 1: ").upper()
 S2 = input("Ticker for stock 2: ").upper()
@@ -22,10 +22,21 @@ S4 = input("Ticker for stock 4: ").upper()
 np.random.seed(123)
 Tickers = [S1,S2,S3,S4]
 print(f'selected tickers: {Tickers}')
-def my(year,frequency,Implied_volatility, months,steps,required_simulation,Average_AUM):
+
+def my(year,is_rate,os_rate,frequency,Implied_volatility, months,steps,required_simulation,NAV):
+    # year = 5
+    # is_rate = 0.75
+    # os_rate = 0.25
+    # frequency = '1mo'
+    # Implied_volatility = 0.5
+    # months = 12
+    # steps = 100
+    # required_simulation = 1000
+    # NAV = 1000000
+    
     #1. Collect returns data for 4 (or more) different assets, which have in T observations, where T is 5 years or more.
-    df = np.matrix(yf.Tickers(Tickers).history(year,frequency).Close.dropna().pct_change().dropna())
-    pd.set_option('max_columns', None)   
+    df = np.matrix(yf.Tickers(Tickers).history(f'{year}y',frequency).Close.dropna().pct_change().dropna())
+    pd.set_option('max_columns', None) 
     #2. Estimate the sample mean vector μ_T and the sample covariance matrix Σ_T
     n_rows = df.shape[0]
     n_col = df.shape[1]
@@ -89,7 +100,7 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
             plt.plot(grid0*np.sqrt(months),Cap_r0*months,linewidth=0.1)
             i=i+1
     plt.plot(grid0*np.sqrt(months),Cap_r0*months,color='b',linewidth=3)
-    plt.title("Investment Opportunity Set")
+    plt.title("Efficient Frontier of the portfolio")
     plt.xlabel("Annualized standard deviation")
     plt.ylabel("Annual expected return")
     plt.show()
@@ -101,12 +112,6 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
     simulation0[0,0]=GMV_SD
     simulation0[0,1]=GMV_r
     simulation0[0,2:5]=GMV_w.T[:,0:3]
-    fc_simulation0 = np.zeros((required_simulation+1,5))
-    fc_simulation0[0,0] = GMV_w.T[:,0]*Average_AUM
-    fc_simulation0[0,1] = GMV_w.T[:,1]*Average_AUM
-    fc_simulation0[0,2] = GMV_w.T[:,2]*Average_AUM
-    fc_simulation0[0,3] = GMV_w.T[:,3]*Average_AUM
-    fc_simulation0[0,4] = fc_simulation0[0,0]+fc_simulation0[0,1]+fc_simulation0[0,2]+fc_simulation0[0,3]
     i=1
     while i<=required_simulation:
             df0=np.random.multivariate_normal(np.ravel(mean_vector),cov_matrix,n_rows)
@@ -123,11 +128,6 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
             simulation0[i,0]=GMV_SD0
             simulation0[i,1]=GMV_r0
             simulation0[i,2:5]=GMV_w0.T[:,0:3]
-            fc_simulation0[i,0] = (GMV_w0.T[:,0]*Average_AUM)
-            fc_simulation0[i,1] = (GMV_w0.T[:,1]*Average_AUM)
-            fc_simulation0[i,2] = (GMV_w0.T[:,2]*Average_AUM)
-            fc_simulation0[i,3] = (GMV_w0.T[:,3]*Average_AUM)
-            fc_simulation0[i,4] = fc_simulation0[0,0]+fc_simulation0[0,1]+fc_simulation0[0,2]+fc_simulation0[0,3]
             plt.plot(GMV_SD0*np.sqrt(months),GMV_r0*months,color='green',marker='o', markersize=0.5)
             i = i+1
     #5.	Assume that asset returns conform to a multivariate normal distribution, 
@@ -135,6 +135,7 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
     #6.	Simulate 1,000 independent samples for each asset from the multivariate normal distribution 
     # with mean μ_T and covariance matrix Σ_T, with each draw consisting of T returns.
     #7. '
+    print(df)
     print('\n')
     print('Sample mean vector μ_T:')
     print('\n')
@@ -165,13 +166,13 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
         
     print('Assuming the asset returns conform to a multivariance normal distribution - ')
     print('\n')
-
+    
     print("Portfolio weights in GMV method:")
     print("\n")
     GMV_Weights = pd.DataFrame(GMV_w,index=Tickers,columns=["Weight"])
     GMV_Weights = GMV_Weights.T
     print(np.round(GMV_Weights,2))
-
+    
     print("\n")
     print("GMV Portfolio Simulation with Standard Deviation, Expected Return, and Weights:")
     print("\n")
@@ -192,21 +193,6 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
     print("Summary Statistics of GMV Sharpe Ratio")
     sum_stat0 = round(GMV_Sharpe_ratio.describe(),3)
     print(sum_stat0)
-    print("\n")
-    GMV_allocation = GMV_Weights*Average_AUM
-    GMV_allocation.loc[:,'Total'] = GMV_allocation.sum(numeric_only=True,axis=1)
-    GMV_allocation = pd.concat([GMV_allocation]*1000,ignore_index=True)
-    sim_allocation0 = pd.DataFrame(fc_simulation0[:1000],columns=GMV_allocation.columns)
-    GMV_turnover =  GMV_allocation.subtract(sim_allocation0,axis=1)
-    GMV_turnover = GMV_turnover.drop(['Total'],axis=1)
-    GMV_turnover.loc[:,'Turnover'] = abs(GMV_turnover).sum(numeric_only=True,axis=1)/2
-    GMV_turnover['Portfolio turnover ratio'] = GMV_turnover['Turnover']/Average_AUM
-    print("Changes in GMV portfolio allocation in simulated portfolios in 1-month forward:")
-    print("\n")
-    print(round(sim_allocation0,3))
-    print("\n")
-    print("Average rebalanced GMV portfolio turnover in 1-month forward:")
-    print(round(GMV_turnover,3))
     
     plt.plot(GMV_SD*np.sqrt(months),GMV_r*months,color='b',marker='o')
     plt.title("GMV portfolio simulation in mean-standard deviation space")
@@ -214,23 +200,12 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
     plt.ylabel("Annual expected return")
     plt.show() 
     
-    plt.plot(GMV_turnover.iloc[:,-2],GMV_turnover.iloc[:,-1],color='b')
-    plt.title("1-month forward GMV portfolio turnover")
-    plt.xlabel("Portfolio turnover")
-    plt.ylabel("Portfolio turnover ratio")
-    plt.show()
     
     # Plot the 1,000 MSR portfolio's expected returns and standard deviations in mean-standard deviation space 
     simulation1 = np.zeros((required_simulation+1,6))
     simulation1[0,0]=MSR_SD
     simulation1[0,1]=MSR_r
     simulation1[0,2:5]=MSR_w.T[:,0:3]
-    fc_simulation1 = np.zeros((required_simulation+1,5))
-    fc_simulation1[0,0] = MSR_w.T[:,0]*Average_AUM
-    fc_simulation1[0,1] = MSR_w.T[:,1]*Average_AUM
-    fc_simulation1[0,2] = MSR_w.T[:,2]*Average_AUM
-    fc_simulation1[0,3] = MSR_w.T[:,3]*Average_AUM
-    fc_simulation1[0,4] = fc_simulation1[0,0]+fc_simulation1[0,1]+fc_simulation1[0,2]+fc_simulation1[0,3]
     i=1
     while i<=required_simulation:
             df1=np.random.multivariate_normal(np.ravel(mean_vector),cov_matrix,n_rows)
@@ -247,11 +222,6 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
             simulation1[i,0]=MSR_SD1
             simulation1[i,1]=MSR_r1
             simulation1[i,2:5]=MSR_w1.T[:,0:3]
-            fc_simulation1[i,0] = (MSR_w1.T[:,0]*Average_AUM)
-            fc_simulation1[i,1] = (MSR_w1.T[:,1]*Average_AUM)
-            fc_simulation1[i,2] = (MSR_w1.T[:,2]*Average_AUM)
-            fc_simulation1[i,3] = (MSR_w1.T[:,3]*Average_AUM)
-            fc_simulation1[i,4] = fc_simulation1[0,0]+fc_simulation1[0,1]+fc_simulation1[0,2]+fc_simulation1[0,3]
             plt.plot(MSR_SD1*np.sqrt(months),MSR_r1*months,color='green',marker='o', markersize=0.5)
             i=i+1
     # # 11. Make a table with the summary statistics for the re-sampled MSR portfolio simulation[i,0]=MSR_SD1
@@ -282,21 +252,6 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
     print("Summary Statistics of MSR Sharpe Ratio")
     sum_stat1 = round(MSR_Sharpe_ratio.describe(),3)
     print(sum_stat1)
-    print("\n")
-    MSR_allocation = MSR_Weights*Average_AUM
-    MSR_allocation.loc[:,'Total'] = MSR_allocation.sum(numeric_only=True,axis=1)
-    MSR_allocation = pd.concat([MSR_allocation]*1000,ignore_index=True)
-    sim_allocation1 = pd.DataFrame(fc_simulation0[:1000],columns=GMV_allocation.columns)
-    MSR_turnover =  MSR_allocation.subtract(sim_allocation1,axis=1)
-    MSR_turnover = MSR_turnover.drop(['Total'],axis=1)
-    MSR_turnover.loc[:,'Turnover'] = abs(MSR_turnover).sum(numeric_only=True,axis=1)/2
-    MSR_turnover['Portfolio turnover ratio'] = MSR_turnover['Turnover']/Average_AUM
-    print("Changes in MSR portfolio allocation in simulated portfolios in 1-month forward:")
-    print("\n")
-    print(round(sim_allocation1,3))
-    print("\n")
-    print("Average rebalanced MSR portfolio turnover in 1-month forward:")
-    print(round(MSR_turnover,3))
     
     plt.plot(MSR_SD*np.sqrt(months),MSR_r*months,color='b',marker='o')
     plt.xlim(0.25,0.7)
@@ -306,18 +261,146 @@ def my(year,frequency,Implied_volatility, months,steps,required_simulation,Avera
     plt.ylabel("Annual expected return")
     plt.show() 
     
-    plt.plot(MSR_turnover.iloc[:,-2],MSR_turnover.iloc[:,-1],color='b')
-    plt.title("1-month forward MSR portfolio turnover")
-    plt.xlabel("Portfolio turnover")
-    plt.ylabel("Portfolio turnover ratio")
-    plt.show()
     
-#def my(year,frequency,Implied_volatility, months,steps,required_simulation,Average_AUM)
-my('5y','1mo',0.5,12,100,1000,1000000)
-new_1 = input("Ticker for stock 1: ").upper()
-new_2 = input("Ticker for stock 2: ").upper()
-new_3 = input("Ticker for stock 3: ").upper()
-new_4 = input("Ticker for stock 4: ").upper()
-np.random.seed(123)
-Tickers = [new_1,new_2,new_3,new_4]
-my('5y','1mo',0.5,12,100,1000,1000000)
+    #12. Run 1-month forward out of sample test using 75% of your sample 
+    #    as the base sample and then the remaining 25% for out-of-sample
+    df = np.matrix(yf.Tickers(Tickers).history(f'{year}y',frequency).Close.dropna().pct_change().dropna())
+    
+    # Get the base-sample data
+    is_df = df[:(int(len(df)*is_rate)),:]
+    is_rows = is_df.shape[0]
+    is_col = is_df.shape[1]
+    is_row_vector = np.matrix(np.ones(is_rows)).T #creating a row vector (i.e.,is_rows x 1 vector)
+    is_mean_vector = is_df.T*is_row_vector/is_rows  #sample mean vector
+    is_cov_matrix = (is_df-is_mean_vector.T).T*(is_df-is_mean_vector.T)/(is_rows-1) #sample covariance matrix
+    is_col_vector=np.matrix(np.ones(is_col)).T #create a col_vectorit vector (i.e., is_col x 1 vector) with columns
+    #in-sample GMV weights
+    is_GMV_w = (pow(is_cov_matrix,-1)*is_col_vector)/(is_col_vector.T*pow(is_cov_matrix,-1)*is_col_vector) #in-sample GMV portfolio weights
+    is_GMV_Weights = pd.DataFrame(is_GMV_w,index=Tickers,columns=["Weight"])
+    is_GMV_Weights = is_GMV_Weights.T
+    #in-sample MSR weights
+    is_MSR_w = (pow(is_cov_matrix,-1)*is_mean_vector)/(is_col_vector.T*pow(is_cov_matrix,-1)*is_mean_vector) #in-sample MSR portfolio weights
+    is_MSR_Weights = pd.DataFrame(is_MSR_w,index=Tickers,columns=["Weight"])
+    is_MSR_Weights = is_MSR_Weights.T
+    
+    # Get out-of-sample return vector
+    os_df = np.matrix(yf.Tickers(Tickers).history(f'{int(year*months*os_rate)}mo',frequency).Close.dropna().pct_change().dropna())
+    
+    # Generate GMV portfolio turnover for 1-month forward
+    os_GMV = np.zeros((len(os_df)+1,6))
+    i = 1
+    while i<=len(os_df):
+        rs_df = df[:len(is_df)+i]
+        rs_rows = rs_df.shape[0]
+        rs_col = rs_df.shape[1]
+        rs_row_vector = np.matrix(np.ones(rs_rows)).T #creating a row vector (i.e.,is_rows x 1 vector)
+        rs_mean_vector = rs_df.T*rs_row_vector/rs_rows  #sample mean vector
+        rs_cov_matrix = (rs_df-rs_mean_vector.T).T*(rs_df-rs_mean_vector.T)/(rs_rows-1) #sample covariance matrix
+        rs_col_vector=np.matrix(np.ones(rs_col)).T #create a col_vectorit vector (i.e., is_col x 1 vector) with columns
+        rs_GMV_w = (pow(rs_cov_matrix,-1)*rs_col_vector)/(rs_col_vector.T*pow(rs_cov_matrix,-1)*rs_col_vector) #GMV portfolio weights
+        
+        os_rows = os_df.shape[0]
+        os_col = os_df.shape[1]
+        os_row_vector = np.matrix(np.ones(os_rows)).T #creating a row vector (i.e.,is_rows x 1 vector)
+        os_mean_vector = os_df.T*os_row_vector/os_rows  #sample mean vector
+        
+        rs_GMV_r = rs_GMV_w.T*os_mean_vector #GMV portfolio return
+        rs_GMV_SD = np.sqrt(rs_GMV_w.T*rs_cov_matrix*rs_GMV_w) #GMV portfolio standard deviation
+        os_GMV[i,0] = rs_GMV_r
+        os_GMV[i,1] = rs_GMV_SD
+        os_GMV[i,2:6] = rs_GMV_w.T
+        i = i+1
+        
+    print("\n")
+    print("Changes in out-of-sample GMV portfolio allocation in portfolios in 1-month forward:")
+    print("\n")
+    os_GMV = pd.DataFrame(os_GMV,columns=['Expected Return','Standard Deviation',
+                                              f'Weight of {Tickers[0]}',f'Weight of {Tickers[1]}',
+                                              f'Weight of {Tickers[2]}',f'Weight of {Tickers[3]}'])
+    os_GMV.index.name = "Months"
+    os_GMV = os_GMV.tail(-1)
+    print(round(os_GMV,3))
+    
+    #Get the base sample allocation
+    is_GMV_allocation = is_GMV_Weights*NAV
+    is_GMV_allocation = pd.concat([is_GMV_allocation]*len(os_df),ignore_index=True)
+    #Get the out_of_sample allocation
+    os_GMV_allocation = os_GMV.iloc[:, 2:]*NAV
+    os_GMV_allocation.columns = is_GMV_allocation.columns
+    #rebalancing the portfolio allocation
+    os_GMV_turnover = is_GMV_allocation.reset_index(drop=True)-os_GMV_allocation.reset_index(drop=True)
+    os_GMV_turnover.loc[:,'Portfolio Turnover (USD)'] = abs(os_GMV_turnover).sum(numeric_only=True,axis=1)/2
+    os_GMV_turnover['Portfolio turnover ratio'] = os_GMV_turnover['Portfolio Turnover (USD)']/NAV
+    
+    print("\n")
+    print("Rebalanced GMV portfolio turnover in 1-month forward:")
+    print("\n")
+    print(round(os_GMV_turnover,2))
+    print("\n")
+    print("Average rebalanced GMV portfolio turnover in 1-month forward:")
+    print("\n")
+    print(round(os_GMV_turnover.mean(),2))
+    
+    # Generate MSR portfolio turnover for 1-month forward
+    os_MSR = np.zeros((len(os_df)+1,6))
+    i = 1
+    while i<=len(os_df):
+        rs_df = df[:len(is_df)+i]
+        rs_rows = rs_df.shape[0]
+        rs_col = rs_df.shape[1]
+        rs_row_vector = np.matrix(np.ones(rs_rows)).T #creating a row vector (i.e.,is_rows x 1 vector)
+        rs_mean_vector = rs_df.T*rs_row_vector/rs_rows  #sample mean vector
+        rs_cov_matrix = (rs_df-rs_mean_vector.T).T*(rs_df-rs_mean_vector.T)/(rs_rows-1) #sample covariance matrix
+        rs_col_vector=np.matrix(np.ones(rs_col)).T #create a col_vectorit vector (i.e., is_col x 1 vector) with columns
+        rs_MSR_w = (pow(rs_cov_matrix,-1)*rs_mean_vector)/(rs_col_vector.T*pow(rs_cov_matrix,-1)*rs_mean_vector) #MSR portfolio weights
+        
+        os_rows = os_df.shape[0]
+        os_col = os_df.shape[1]
+        os_row_vector = np.matrix(np.ones(os_rows)).T #creating a row vector (i.e.,is_rows x 1 vector)
+        os_mean_vector = os_df.T*os_row_vector/os_rows  #sample mean vector
+        
+        rs_MSR_r = rs_MSR_w.T*os_mean_vector #MSR portfolio return
+        rs_MSR_SD = np.sqrt(rs_MSR_w.T*rs_cov_matrix*rs_MSR_w) #MSR portfolio standard deviation
+        os_MSR[i,0] = rs_MSR_r
+        os_MSR[i,1] = rs_MSR_SD
+        os_MSR[i,2:6] = rs_MSR_w.T
+        i = i+1
+    
+    print("\n")
+    print("Changes in out-of-sample MSR portfolio allocation in portfolios in 1-month forward:")
+    print("\n")
+    os_MSR = pd.DataFrame(os_MSR,columns=['Expected Return','Standard Deviation',
+                                              f'Weight of {Tickers[0]}',f'Weight of {Tickers[1]}',
+                                              f'Weight of {Tickers[2]}',f'Weight of {Tickers[3]}'])
+    os_MSR.index.name = "Months"
+    os_MSR = os_MSR.tail(-1)
+    print(round(os_MSR,3))
+    
+    #Get the base sample allocation
+    is_MSR_allocation = is_MSR_Weights*NAV
+    is_MSR_allocation = pd.concat([is_MSR_allocation]*len(os_df),ignore_index=True)
+    #Get the out_of_sample allocation
+    os_MSR_allocation = os_MSR.iloc[:, 2:]*NAV
+    os_MSR_allocation.columns = is_MSR_allocation.columns
+    #rebalancing the portfolio allocation
+    os_MSR_turnover = is_MSR_allocation.reset_index(drop=True)-os_MSR_allocation.reset_index(drop=True)
+    os_MSR_turnover.loc[:,'Portfolio Turnover (USD)'] = abs(os_MSR_turnover).sum(numeric_only=True,axis=1)/2
+    os_MSR_turnover['Portfolio turnover ratio'] = os_MSR_turnover['Portfolio Turnover (USD)']/NAV
+    
+    print("\n")
+    print("Rebalanced MSR portfolio turnover in 1-month forward:")
+    print("\n")
+    print(round(os_MSR_turnover,2))
+    print("\n")
+    print("Average rebalanced MSR portfolio turnover in 1-month forward:")
+    print("\n")
+    print(round(os_MSR_turnover.mean(),2))
+
+
+
+# def my(year,is_rate,os_rate,frequency,Implied_volatility, months,steps,required_simulation,NAV)
+my(5,0.75,0.25,'1mo',0.5,12,100,1000,1000000)
+
+
+# Statistically equivalent portfolio with better portfolio performance and lower turnover
+my(5,0.85,0.15,'1mo',0.5,12,100,1000,1000000)
