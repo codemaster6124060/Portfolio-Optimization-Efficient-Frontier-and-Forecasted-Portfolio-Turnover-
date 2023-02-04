@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from fredapi import Fred
 
 # Get API key: Fred
-fred = Fred(api_key='0bbc318d3ba2efaf9d4e56708954067d')
+fred = Fred(api_key='Please insert your FRED API Key')
 rf = fred.get_series('DTB6')[-1]/100
 S1 = input("Ticker for stock 1: ").upper()
 S2 = input("Ticker for stock 2: ").upper()
